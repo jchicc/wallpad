@@ -1,0 +1,49 @@
+{
+  "name": "COMMAX Wallpad Controller for ew11",
+  "version": "1.1.6",
+  "slug": "wallpad",
+  "url": "https://github.com/kimtc99/wallpad",
+  "description": "ew11을 사용한 코맥스 월패드 nodejs 서버. 깃허브 HAkorea를 참고하였습니다.",
+  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
+  "map": [
+    "share:rw"
+  ],
+  "startup": "application",
+  "boot": "auto",
+  "options": {
+    "DEBUG": false,
+    "mqttlog": true,
+    "check_signal": false,
+    "find_signal":false,
+    "sendDelay": 80,
+
+    "ew11_IP": "192.168.x.x",
+    "ew11_port": 8899,
+    "ew11_data_length": 32,
+
+    "mqtt_server": "192.168.x.x",
+    "mqtt_id": "id",
+    "mqtt_password": "pwd",
+    "mqtt_receiveDelay": 10000,
+
+    "custom_file": ""
+  },
+  "schema": {
+    "DEBUG": "bool",
+    "mqttlog": "bool",
+    "check_signal": "bool",
+    "find_signal":"bool",
+    "sendDelay": "int",
+
+    "ew11_IP": "str",
+    "ew11_port": "int",
+    "ew11_data_length": "list(16|32)",
+
+    "mqtt_server": "str",
+    "mqtt_id": "str",
+    "mqtt_password": "str",
+    "mqtt_receiveDelay": "int",
+
+    "custom_file": "str?"
+  }
+}

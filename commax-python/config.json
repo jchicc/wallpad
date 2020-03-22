@@ -1,0 +1,35 @@
+{
+  "name": "COMMAX Wallpad Controller with Python",
+  "version": "1.0.0",
+  "slug": "wallpad",
+  "url": "https://github.com/kimtc99/wallpad",
+  "description": "Python으로 만든 네트워크 통신을 위한 코맥스 월패드",
+  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
+  "map": [
+    "share:rw"
+  ],
+  "startup": "application",
+  "boot": "auto",
+  "options": {
+    "DEBUG": false,
+    "mqtt_log": true,
+    "check_all_received_signal": false,
+    "save_unregistered_signal": true,
+    "socket_IP": "192.168.x.x",
+    "socket_port": 8899,
+    "mqtt_server": "192.168.x.x",
+    "mqtt_id": "id",
+    "mqtt_password": "pwd"
+  },
+  "schema": {
+    "DEBUG": "bool",
+    "mqtt_log": "bool",
+    "check_all_received_signal": "bool",
+    "save_unregistered_signal": "bool",
+    "socket_IP": "str",
+    "socket_port": "int",
+    "mqtt_server": "str",
+    "mqtt_id": "str",
+    "mqtt_password": "str"
+  }
+}

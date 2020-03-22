@@ -1,0 +1,60 @@
+{
+  "Light": {
+    "Number": 3,
+    "commandOFF": "3101000000000032",
+    "commandON": "3101010000000033",
+    "responseOFF": "B1000100000000B2",
+    "responseON": "B1010100000000B3",
+    "commandNUM": "4",
+    "responseNUM": "6",
+
+    "statePREFIX": "30",
+    "stateOFF": "B0000100000000B1",
+    "stateON": "B0010100000000B2",
+    "stateNUM": "6"
+  },
+  "Thermo": {
+    "Number": 5,
+    "commandOFF": "0401040000000009",
+    "commandON": "040104810000008A",
+    "responseOFF": "848001232300004B",
+    "responseON": "848101232300004C",
+    "commandCHANGE": "040103220000002A",
+    "commandNUM": "4",
+    "responseNUM": "6",
+
+    "curTemp": 7,
+    "setTemp": 9,
+    "chaTemp": 7,
+
+    "statePREFIX": "02",
+    "stateOFF": "8280012322000048",
+    "stateON": "8281012322000049",
+    "stateNUM": "6",
+    "stateONOFFNUM": 4
+  },
+  "LightBreaker": {
+    "commandOFF": "2201000100000024",
+    "commandON": "2201010100000025",
+    "responseOFF": "A2000100001500B8",
+    "responseON": "A2010100001500B9",
+
+    "statePREFIX": "20",
+    "stateOFF": "A0000100001500B6",
+    "stateON": "A0010100001500B7"
+  },
+  "Gas": {
+    "commandOFF": "1101800000000092",
+    "responseOFF": "9158580000000041",
+
+    "statePREFIX": "10",
+    "stateOFF": "9050500000000030",
+    "stateON": "90A0A000000000D0"
+  },
+  "EV": {
+    "commandOFF": "220140070000006A",
+    "responseOFF": "A2010100001500B9",
+
+    "statePREFIX": "23"
+  }
+}
