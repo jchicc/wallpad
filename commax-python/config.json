@@ -14,7 +14,7 @@
     "DEBUG": false,
     "mqtt_log": true,
     "check_all_received_signal": false,
-    "save_unregistered_signal": true,
+    "save_unregistered_signal": false,
     "socket_IP": "192.168.x.x",
     "socket_port": 8899,
     "mqtt_server": "192.168.x.x",
