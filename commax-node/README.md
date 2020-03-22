@@ -15,7 +15,7 @@ https://github.com/HAKorea/addons/wallpad 를 참고 하였습니다.
 -------
 1. Supervisor -> ADD-ON STORE 이동
 2. "https://github.com/kimtc99/wallpad" 를 Repositories 에 추가하고 새로 고침을 합니다.
-3. Saram's Repository 항목으로 이동하여 "COMMAX Wallpad Controller for ew11"를 선택하고 INSTALL을 눌러 설치합니다.
+3. Saram's Repository 항목으로 이동하여 "COMMAX Wallpad Controller with Nodejs"를 선택하고 INSTALL을 눌러 설치합니다.
 
 설정 화면
 -------
