@@ -14,5 +14,5 @@ python3를 이용하여 작동합니다.
 
 참고
 ---
-시리얼 통신으로 작동하는 앱은 아래 링크로 이동 바랍니다.
+시리얼 통신으로 작동하는 앱은 링크로 이동 바랍니다.
 https://github.com/HAKorea/addons/wallpad
