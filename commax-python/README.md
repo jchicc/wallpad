@@ -15,7 +15,7 @@ Python으로 만든 코맥스 월패드 - socket전용
 "DEBUG": false,
 "mqtt_log": true,
 "check_all_received_signal": false,
-"save_unregistered_signal": true,
+"save_unregistered_signal": false,
 "ew11_IP": "192.168.x.x",
 "ew11_port": 8899,
 "mqtt_server": "192.168.x.x",
@@ -47,13 +47,11 @@ mqtt 서버 사용자의 암호를 적습니다. 숫자암호인 경우 꼭 따�
 기기 정보 파일 (commax_found_device.json) 사용법
 -------------------------------------------
 처음 프로그램을 실행하면 20초 동안 신호를 수집하여 share 폴더에 기기 정보 파일 commax_found_device.json을 만듭니다.
-기기 검색 단계 20초 동안 가스잠금장치와 일괄전등스위치를 껐다 켜면 수집에 도움이 됩니다.
+기기 검색 단계 20초 동안 가스잠금장치와 일괄전등스위치, 엘레베이터 등을 껐다 켜면 수집에 도움이 됩니다.
 20초는 긴 시간이니 상태 신호를 확인할 수 있도록 천천히 껐다 켜주세요.
 만약 수집된 내용이 집의 신호와 다른 경우 파일을 수정해주세요.
 
 * 만약 기기 검색을 다시 하고 싶으면 이 파일을 삭제하세요.
-* 엘리베이터(EV)는 검색기능이 없어요. 켜고 싶으면 파일 안에 EV 항목의 Number를 1로 변경하면 됩니다.
-* 아직 전열교환기(FAN)은 동작을 안합니다. 차후에 업데이트 하도록 하겠습니다.
 
 기기 정보 파일 (commax_found_device.json) 예
 -----------------------
@@ -152,6 +150,8 @@ OFF 명령은 4번째 자리가 기기에 따라 바뀌고, OFF 응답은 6번�
 
 기기 등록 예
 ------------
+* fan(전열교환기) 는 문제가 있을 수도 있습니다. 
+
 <pre><code>
 climate:
   - platform: mqtt
@@ -174,5 +174,18 @@ light:
     name: "거실등1"
     state_topic: "homenet/Light1/power/state"
     command_topic: "homenet/Light1/power/command"
+
+fan
+  - platform: mqtt
+    name: "전열교환기"
+    state_topic: "homenet/Fan1/power/state"
+    command_topic: "homenet/Fan1/power/command"
+    speed_state_topic: "homenet/Fan1/speed/state"
+    speed_command_topic: "homenet/Fan1/speed/command"
+    speeds:
+      - "off"
+      - low
+      - medium
+      - high
 
 </code></pre>

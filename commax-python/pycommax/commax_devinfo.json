@@ -47,7 +47,8 @@
   "Fan": {
     "Number": 0,
     "commandOFF": "780101000000007A",
-    "commandON": "780102010000007C",
+    "commandON": "780101040000007C",
+    "commandCHANGE": "780102010000007C",
     "speedNUM": 8,
 
     "statePREFIX": "76",

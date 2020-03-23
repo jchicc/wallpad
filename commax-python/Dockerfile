@@ -1,6 +1,7 @@
 FROM python:3.7-alpine
 
 ENV LANG C.UTF-8
+ENV TZ=Asia/Seoul
 
 # Copy data for add-on
 COPY run.sh /
