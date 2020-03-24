@@ -57,7 +57,7 @@
   },
   "EV": {
     "Number": 1,
-    "commandOFF": "220140070000006A",
+    "commandON": "220140070000006A",
 
     "statePREFIX": "23"
   }
