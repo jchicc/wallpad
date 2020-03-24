@@ -366,7 +366,6 @@ def do_work(config, device_list):
                     data_prefix = data[:2]
                     if data_prefix in prefix_list:
                         device_name = prefix_list[data_prefix]
-
                         if len(data) == 32:
                             data = data[16:]
                             for que in QUEUE:
@@ -415,7 +414,8 @@ def do_work(config, device_list):
                                     json.dump(COLLECTDATA, make_file, indent="\t")
                                     log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
                                 COLLECTDATA = None
-                except:
+                except Exception as err:
+                    log('[ERROR] {}'.format(err))
                     writer.close()
                     await writer.wait_closed()
                     break
@@ -437,7 +437,8 @@ def do_work(config, device_list):
                         else:
                             if debug:
                                 log('[ERROR] socket:: Send over 5 times. Send Failure. Delete a queue: {}'.format(send_data))
-                except:
+                except Exception as err:
+                    log('[ERROR] {}'.format(err))
                     writer.close()
                     await writer.wait_closed()
                     break
