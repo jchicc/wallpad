@@ -186,11 +186,10 @@ def do_work(config, device_list):
         if device_info:
             DEVICE_LISTS[name] = device_info
     prefix_list = {DEVICE_LISTS[name]['prefix']: name for name in DEVICE_LISTS}
-    if debug:
-        log('[DEBUG] ----------------------')
-        log('[DEBUG] Registered device lists..')
-        log('DEVICE_LISTS: {}'.format(DEVICE_LISTS))
-        log('[DEBUG] ----------------------')
+    log('----------------------')
+    log('Registered device lists..')
+    log('DEVICE_LISTS: {}'.format(DEVICE_LISTS))
+    log('----------------------')
 
     HOMESTATE = {}
     QUEUE = []
@@ -259,7 +258,7 @@ def do_work(config, device_list):
                             if value in speed_list:
                                 index = speed_list.index(value)
                                 sendcmd = DEVICE_LISTS[device][idx]['CHANGE'][index]
-                                recvcmd = [DEVICE_LISTS[device][idx].get('state' + value)]
+                                recvcmd = [DEVICE_LISTS[device][idx]['stateON'][index]]
                                 QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
                                 if debug:
                                     log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
@@ -386,9 +385,9 @@ def do_work(config, device_list):
                                 update_state(device_name, index, onoff)
                                 update_temperature(index, curT, setT)
                             elif device_name == 'Fan':
-                                if data in DEVICE_LISTS['Fan']['stateON']:
+                                if data in DEVICE_LISTS['Fan'][1]['stateON']:
                                     update_state('Fan', 0, 'ON')
-                                    speed = DEVICE_LISTS['Fan']['stateON'].index(data)
+                                    speed = DEVICE_LISTS['Fan'][1]['stateON'].index(data)
                                     update_fan('Fan', 0, speed)
                             else:
                                 num = DEVICE_LISTS[device_name]['Num']
