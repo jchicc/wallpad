@@ -348,7 +348,7 @@ def do_work(config, device_list):
         COLLECTDATA = []
         fsignal = find_signal
         EVontime = time.time()
-        if 'EV' in device_list:
+        if 'EV' in DEVICE_LISTS:
             update_state('EV', 0, 'OFF')
 
         while True:
@@ -387,9 +387,9 @@ def do_work(config, device_list):
                                 update_state(device_name, index, onoff)
                                 update_temperature(index, curT, setT)
                             elif device_name == 'Fan':
-                                if data in device_list['Fan']['stateON']:
+                                if data in DEVICE_LISTS['Fan']['stateON']:
                                     update_state('Fan', 0, 'ON')
-                                    speed = device_list['Fan']['stateON'].index(data)
+                                    speed = DEVICE_LISTS['Fan']['stateON'].index(data)
                                     update_fan('Fan', 0, speed)
                             else:
                                 num = DEVICE_LISTS[device_name]['Num']
