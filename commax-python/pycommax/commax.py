@@ -386,7 +386,7 @@ def do_work(config, device_list):
 
                                 update_state(device_name, index, onoff)
                                 update_temperature(index, curT, setT)
-                            elif device_name == 'Fan' and data.startswith(device_list['Fan']['stateOFF'][:2]):
+                            elif device_name == 'Fan':
                                 if data in device_list['Fan']['stateON']:
                                     update_state('Fan', 0, 'ON')
                                     speed = device_list['Fan']['stateON'].index(data)
