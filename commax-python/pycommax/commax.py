@@ -186,7 +186,6 @@ def do_work(config, device_list):
         if device_info:
             DEVICE_LISTS[name] = device_info
     prefix_list = {DEVICE_LISTS[name]['prefix']: name for name in DEVICE_LISTS}
-
     if debug:
         log('[DEBUG] ----------------------')
         log('[DEBUG] Registered device lists..')
@@ -247,6 +246,8 @@ def do_work(config, device_list):
                                     if debug:
                                         log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
                     elif device == 'Fan':
+                        if value == 'off':
+                            value = 'OFF'
                         if topics[2] == 'power':
                             sendcmd = DEVICE_LISTS[device][idx].get('command' + value)
                             recvcmd = DEVICE_LISTS[device][idx].get('state' + value) if value == 'ON' else [DEVICE_LISTS[device][idx].get('state' + value)]
@@ -265,7 +266,7 @@ def do_work(config, device_list):
                     else:
                         sendcmd = DEVICE_LISTS[device][idx].get('command' + value)
                         if sendcmd:
-                            recvcmd = [DEVICE_LISTS[device][idx].get('state' + value)]
+                            recvcmd = [DEVICE_LISTS[device][idx].get('state' + value, 'NULL')]
                             QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
                             if debug:
                                 log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
@@ -347,6 +348,8 @@ def do_work(config, device_list):
         COLLECTDATA = []
         fsignal = find_signal
         EVontime = time.time()
+        if 'EV' in device_list:
+            update_state('EV', 0, 'OFF')
 
         while True:
             reader, writer = await asyncio.open_connection(config['socket_IP'], config['socket_port'])
@@ -364,10 +367,6 @@ def do_work(config, device_list):
                     if data_prefix in prefix_list:
                         device_name = prefix_list[data_prefix]
 
-                        if device_name == 'EV':
-                            update_state('EV', 0, 'ON')
-                            EVontime = time.time() + 1
-
                         if len(data) == 32:
                             data = data[16:]
                             for que in QUEUE:
@@ -375,7 +374,7 @@ def do_work(config, device_list):
                                     QUEUE.remove(que)
                                     if debug:
                                         log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
-                            if device_name == 'Thermo':
+                            if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
                                 curTnum = device_list['Thermo']['curTemp']
                                 setTnum = device_list['Thermo']['setTemp']
                                 curT = data[curTnum - 1:curTnum + 1]
@@ -387,7 +386,7 @@ def do_work(config, device_list):
 
                                 update_state(device_name, index, onoff)
                                 update_temperature(index, curT, setT)
-                            elif device_name == 'Fan':
+                            elif device_name == 'Fan' and data.startswith(device_list['Fan']['stateOFF'][:2]):
                                 if data in device_list['Fan']['stateON']:
                                     update_state('Fan', 0, 'ON')
                                     speed = device_list['Fan']['stateON'].index(data)
@@ -399,6 +398,10 @@ def do_work(config, device_list):
                                     index = state.index(data)
                                     onoff, index = ['OFF', index] if index < num else ['ON', index - num]
                                     update_state(device_name, index, onoff)
+                        else:
+                            if device_name == 'EV':
+                                update_state('EV', 0, 'ON')
+                                EVontime = time.time() + 1
                     else:
                         if fsignal:
                             if len(COLLECTDATA) < 20:
