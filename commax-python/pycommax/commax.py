@@ -10,7 +10,7 @@ config_dir = '/data'
 data_dir = '/pycommax'
 
 def log(string):
-    date = time.strftime('%Y-%m-%d %p %I:%M:%S', time.localtime())
+    date = time.strftime('%Y-%m-%d %p %I:%M:%S', time.localtime(time.time()+9*60*60))
     print('[{}] {}'.format(date, string))
     return
 
