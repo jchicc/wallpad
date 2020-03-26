@@ -9,6 +9,7 @@ share_dir = '/share'
 config_dir = '/data'
 data_dir = '/pycommax'
 
+
 def log(string):
     date = time.strftime('%Y-%m-%d %p %I:%M:%S', time.localtime(time.time()+9*60*60))
     print('[{}] {}'.format(date, string))
@@ -283,7 +284,7 @@ def do_work(config, device_list):
     mqtt_client.connect_async(config['mqtt_server'])
     mqtt_client.loop_start()
 
-    def update_state(device, idx, onoff):
+    async def update_state(device, idx, onoff):
         state = 'power'
         deviceID = device + str(idx + 1)
         key = deviceID + state
@@ -299,7 +300,7 @@ def do_work(config, device_list):
                 log('[DEBUG] {} is already set: {}'.format(deviceID, onoff))
         return
 
-    def update_fan(device, idx, onoff):
+    async def update_fan(device, idx, onoff):
         deviceID = device + str(idx + 1)
         if onoff == 'ON' or onoff == 'OFF':
             state = 'power'
@@ -323,7 +324,7 @@ def do_work(config, device_list):
                 log('[DEBUG] {} is already set: {}'.format(deviceID, onoff))
         return
 
-    def update_temperature(idx, curTemp, setTemp):
+    async def update_temperature(idx, curTemp, setTemp):
         deviceID = 'Thermo' + str(idx + 1)
         temperature = {'curTemp': pad(curTemp), 'setTemp': pad(setTemp)}
         for state in temperature:
@@ -348,71 +349,71 @@ def do_work(config, device_list):
         fsignal = find_signal
         EVontime = time.time()
         if 'EV' in DEVICE_LISTS:
-            update_state('EV', 0, 'OFF')
-
+            await update_state('EV', 0, 'OFF')
         while True:
             reader, writer = await asyncio.open_connection(config['socket_IP'], config['socket_port'])
-            while True:
+            for _ in range(100):
                 try:
                     req = await reader.read(socket_size)
                     if HOMESTATE.get('EV1power') == 'ON':
                         if EVontime < time.time():
-                            update_state('EV', 0, 'OFF')
+                            await update_state('EV', 0, 'OFF')
 
                     data = req.hex().upper()
-                    if check_signal:
-                        log('[SIGNAL] receved: {}'.format(data))
-                    data_prefix = data[:2]
-                    if data_prefix in prefix_list:
-                        device_name = prefix_list[data_prefix]
-                        if len(data) == 32:
-                            data = data[16:]
-                            for que in QUEUE:
-                                if data in que['recvcmd']:
-                                    QUEUE.remove(que)
-                                    if debug:
-                                        log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
-                            if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
-                                curTnum = device_list['Thermo']['curTemp']
-                                setTnum = device_list['Thermo']['setTemp']
-                                curT = data[curTnum - 1:curTnum + 1]
-                                setT = data[setTnum - 1:setTnum + 1]
-                                onoffNUM = device_list['Thermo']['stateONOFFNUM']
-                                staNUM = device_list['Thermo']['stateNUM']
-                                index = int(data[staNUM - 1]) - 1
-                                onoff = 'ON' if int(data[onoffNUM - 1]) > 0 else 'OFF'
+                    if data:
+                        if check_signal:
+                            log('[SIGNAL] receved: {}'.format(data))
+                        data_prefix = data[:2]
+                        if data_prefix in prefix_list:
+                            device_name = prefix_list[data_prefix]
+                            if len(data) == 32:
+                                data = data[16:]
+                                for que in QUEUE:
+                                    if data in que['recvcmd']:
+                                        QUEUE.remove(que)
+                                        if debug:
+                                            log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
+                                if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
+                                    curTnum = device_list['Thermo']['curTemp']
+                                    setTnum = device_list['Thermo']['setTemp']
+                                    curT = data[curTnum - 1:curTnum + 1]
+                                    setT = data[setTnum - 1:setTnum + 1]
+                                    onoffNUM = device_list['Thermo']['stateONOFFNUM']
+                                    staNUM = device_list['Thermo']['stateNUM']
+                                    index = int(data[staNUM - 1]) - 1
+                                    onoff = 'ON' if int(data[onoffNUM - 1]) > 0 else 'OFF'
 
-                                update_state(device_name, index, onoff)
-                                update_temperature(index, curT, setT)
-                            elif device_name == 'Fan':
-                                if data in DEVICE_LISTS['Fan'][1]['stateON']:
-                                    update_state('Fan', 0, 'ON')
-                                    speed = DEVICE_LISTS['Fan'][1]['stateON'].index(data)
-                                    update_fan('Fan', 0, speed)
+                                    await update_state(device_name, index, onoff)
+                                    await update_temperature(index, curT, setT)
+                                elif device_name == 'Fan':
+                                    if data in DEVICE_LISTS['Fan'][1]['stateON']:
+                                        await update_state('Fan', 0, 'ON')
+                                        speed = DEVICE_LISTS['Fan'][1]['stateON'].index(data)
+                                        await update_fan('Fan', 0, speed)
+                                else:
+                                    num = DEVICE_LISTS[device_name]['Num']
+                                    state = [DEVICE_LISTS[device_name][k+1]['stateOFF'] for k in range(num)] + [DEVICE_LISTS[device_name][k+1]['stateON'] for k in range(num)]
+                                    if data in state:
+                                        index = state.index(data)
+                                        onoff, index = ['OFF', index] if index < num else ['ON', index - num]
+                                        await update_state(device_name, index, onoff)
                             else:
-                                num = DEVICE_LISTS[device_name]['Num']
-                                state = [DEVICE_LISTS[device_name][k+1]['stateOFF'] for k in range(num)] + [DEVICE_LISTS[device_name][k+1]['stateON'] for k in range(num)]
-                                if data in state:
-                                    index = state.index(data)
-                                    onoff, index = ['OFF', index] if index < num else ['ON', index - num]
-                                    update_state(device_name, index, onoff)
+                                if device_name == 'EV':
+                                    await update_state('EV', 0, 'ON')
+                                    EVontime = time.time() + 1
                         else:
-                            if device_name == 'EV':
-                                update_state('EV', 0, 'ON')
-                                EVontime = time.time() + 1
-                    else:
-                        if fsignal:
-                            if len(COLLECTDATA) < 20:
-                                if data not in COLLECTDATA:
-                                    log('[FOUND] signal: {}'.format(data))
-                                    COLLECTDATA.append(data)
-                                    COLLECTDATA = list(set(COLLECTDATA))
-                            else:
-                                fsignal = False
-                                with open(share_dir + '/collected_signal.txt', 'w', encoding='utf-8') as make_file:
-                                    json.dump(COLLECTDATA, make_file, indent="\t")
-                                    log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
-                                COLLECTDATA = None
+                            if fsignal:
+                                if len(COLLECTDATA) < 20:
+                                    if data not in COLLECTDATA:
+                                        log('[FOUND] signal: {}'.format(data))
+                                        COLLECTDATA.append(data)
+                                        COLLECTDATA = list(set(COLLECTDATA))
+                                else:
+                                    fsignal = False
+                                    with open(share_dir + '/collected_signal.txt', 'w', encoding='utf-8') as make_file:
+                                        json.dump(COLLECTDATA, make_file, indent="\t")
+                                        log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
+                                    COLLECTDATA = None
                 except Exception as err:
                     log('[ERROR] {}'.format(err))
                     writer.close()
@@ -422,13 +423,14 @@ def do_work(config, device_list):
     async def send_to_socket():
         while True:
             reader, writer = await asyncio.open_connection(config['socket_IP'], config['socket_port'])
-            while True:
+            for _ in range(100):
                 try:
                     if QUEUE:
                         send_data = QUEUE.pop(0)
                         if debug:
                             log('[DEBUG] socket:: Send a signal: {}'.format(send_data))
                         writer.write(bytes.fromhex(send_data['sendcmd']))
+                        await writer.drain()
                         if send_data['count'] < 5:
                             send_data['count'] = send_data['count'] + 1
                             QUEUE.append(send_data)
