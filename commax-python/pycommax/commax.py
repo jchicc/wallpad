@@ -216,66 +216,69 @@ def do_work(config, device_list):
             value = msg.payload.decode('utf-8')
             if mqtt_log:
                 log('[LOG] HA >> MQTT : {} -> {}'.format(msg.topic, value))
-            if device in DEVICE_LISTS:
-                if HOMESTATE.get(key) and value != HOMESTATE.get(key):
-                    if device == 'Thermo':
-                        curTemp = HOMESTATE.get(topics[1]+'curTemp')
-                        setTemp = HOMESTATE.get(topics[1]+'setTemp')
-                        if value == 'off':
-                            value = 'OFF'
-                        elif value == 'heat':
-                            value = 'ON'
-                        if topics[2] == 'power':
-                            sendcmd = make_hex_temp(idx-1, curTemp, setTemp, value)
-                            recvcmd = make_hex_temp(idx-1, curTemp, setTemp, 'state'+value)
-                            if sendcmd:
-                                QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
-                                if debug:
-                                    log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
-                        elif topics[2] == 'setTemp':
-                            value = int(float(value))
-                            if value == int(setTemp):
-                                if debug:
-                                    log('[DEBUG] {} is already set: {}'.format(topics[1], value))
-                            else:
-                                setTemp = value
-                                sendcmd = make_hex_temp(idx-1, curTemp, setTemp, 'CHANGE')
-                                recvcmd = make_hex_temp(idx-1, curTemp, setTemp, 'stateON')
+            try:
+                if device in DEVICE_LISTS:
+                    if HOMESTATE.get(key) and value != HOMESTATE.get(key):
+                        if device == 'Thermo':
+                            curTemp = HOMESTATE.get(topics[1]+'curTemp')
+                            setTemp = HOMESTATE.get(topics[1]+'setTemp')
+                            if value == 'off':
+                                value = 'OFF'
+                            elif value == 'heat':
+                                value = 'ON'
+                            if topics[2] == 'power':
+                                sendcmd = make_hex_temp(idx-1, curTemp, setTemp, value)
+                                recvcmd = make_hex_temp(idx-1, curTemp, setTemp, 'state'+value)
                                 if sendcmd:
                                     QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
                                     if debug:
                                         log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
-                    elif device == 'Fan':
-                        if value == 'off':
-                            value = 'OFF'
-                        if topics[2] == 'power':
+                            elif topics[2] == 'setTemp':
+                                value = int(float(value))
+                                if value == int(setTemp):
+                                    if debug:
+                                        log('[DEBUG] {} is already set: {}'.format(topics[1], value))
+                                else:
+                                    setTemp = value
+                                    sendcmd = make_hex_temp(idx-1, curTemp, setTemp, 'CHANGE')
+                                    recvcmd = make_hex_temp(idx-1, curTemp, setTemp, 'stateON')
+                                    if sendcmd:
+                                        QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
+                                        if debug:
+                                            log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
+                        elif device == 'Fan':
+                            if value == 'off':
+                                value = 'OFF'
+                            if topics[2] == 'power':
+                                sendcmd = DEVICE_LISTS[device][idx].get('command' + value)
+                                recvcmd = DEVICE_LISTS[device][idx].get('state' + value) if value == 'ON' else [DEVICE_LISTS[device][idx].get('state' + value)]
+                                QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
+                                if debug:
+                                    log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
+                            elif topics[2] == 'speed':
+                                speed_list = ['low', 'medium', 'high']
+                                if value in speed_list:
+                                    index = speed_list.index(value)
+                                    sendcmd = DEVICE_LISTS[device][idx]['CHANGE'][index]
+                                    recvcmd = [DEVICE_LISTS[device][idx]['stateON'][index]]
+                                    QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
+                                    if debug:
+                                        log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
+                        else:
                             sendcmd = DEVICE_LISTS[device][idx].get('command' + value)
-                            recvcmd = DEVICE_LISTS[device][idx].get('state' + value) if value == 'ON' else [DEVICE_LISTS[device][idx].get('state' + value)]
-                            QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
-                            if debug:
-                                log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
-                        elif topics[2] == 'speed':
-                            speed_list = ['low', 'medium', 'high']
-                            if value in speed_list:
-                                index = speed_list.index(value)
-                                sendcmd = DEVICE_LISTS[device][idx]['CHANGE'][index]
-                                recvcmd = [DEVICE_LISTS[device][idx]['stateON'][index]]
+                            if sendcmd:
+                                recvcmd = [DEVICE_LISTS[device][idx].get('state' + value, 'NULL')]
                                 QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
                                 if debug:
                                     log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
                     else:
-                        sendcmd = DEVICE_LISTS[device][idx].get('command' + value)
-                        if sendcmd:
-                            recvcmd = [DEVICE_LISTS[device][idx].get('state' + value, 'NULL')]
-                            QUEUE.append({'sendcmd': sendcmd, 'recvcmd': recvcmd, 'count': 0})
-                            if debug:
-                                log('[DEBUG] Queued ::: sendcmd: {}, recvcmd: {}'.format(sendcmd, recvcmd))
+                        if debug:
+                            log('[DEBUG] {} is already set: {}'.format(key, value))
                 else:
                     if debug:
-                        log('[DEBUG] {} is already set: {}'.format(key, value))
-            else:
-                if debug:
-                    log('[DEBUG] There is no commands for {}'.format(msg.topic))
+                        log('[DEBUG] There is no commands for {}'.format(msg.topic))
+            except Exception as err:
+                log('[ERROR] mqtt_on_message(): {}'.format(err))
 
     mqtt_client = mqtt.Client('homenet-commax-python')
     mqtt_client.username_pw_set(config['mqtt_id'], config['mqtt_password'])
@@ -400,7 +403,7 @@ def do_work(config, device_list):
                             else:
                                 if device_name == 'EV':
                                     await update_state('EV', 0, 'ON')
-                                    EVontime = time.time() + 1
+                                    EVontime = time.time() + 3
                         else:
                             if fsignal:
                                 if len(COLLECTDATA) < 20:
@@ -415,10 +418,10 @@ def do_work(config, device_list):
                                         log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
                                     COLLECTDATA = None
                 except Exception as err:
-                    log('[ERROR] {}'.format(err))
-                    writer.close()
-                    await writer.wait_closed()
+                    log('[ERROR] recv_from_socket: {}'.format(err))
                     break
+            writer.close()
+            await writer.wait_closed()
 
     async def send_to_socket():
         while True:
@@ -431,19 +434,18 @@ def do_work(config, device_list):
                             log('[DEBUG] socket:: Send a signal: {}'.format(send_data))
                         writer.write(bytes.fromhex(send_data['sendcmd']))
                         await writer.drain()
+                        await asyncio.sleep(0.5)
                         if send_data['count'] < 5:
                             send_data['count'] = send_data['count'] + 1
                             QUEUE.append(send_data)
-                            await asyncio.sleep(0.5)
                         else:
                             if debug:
                                 log('[ERROR] socket:: Send over 5 times. Send Failure. Delete a queue: {}'.format(send_data))
                 except Exception as err:
-                    log('[ERROR] {}'.format(err))
-                    writer.close()
-                    await writer.wait_closed()
+                    log('[ERROR] send_to_socket(): {}'.format(err))
                     break
-                await asyncio.sleep(0.1)
+            writer.close()
+            await writer.wait_closed()
 
     loop = asyncio.get_event_loop()
     cors = asyncio.wait([send_to_socket(), recv_from_socket()])
