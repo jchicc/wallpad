@@ -356,6 +356,18 @@ def do_work(config, device_list):
 
             data = req.hex().upper()
             if data:
+                OutBreak = False
+                for que in QUEUE:
+                    for recvcmd in que['recvcmd']:
+                        if recvcmd in data:
+                            QUEUE.remove(que)
+                            if debug:
+                                log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
+                            OutBreak = True
+                            break
+                    if OutBreak:
+                        break
+
                 if check_signal:
                     log('[SIGNAL] receved: {}'.format(data))
                 data_prefix = data[:2]
@@ -363,11 +375,6 @@ def do_work(config, device_list):
                     device_name = prefix_list[data_prefix]
                     if len(data) == 32:
                         data = data[16:]
-                        for que in QUEUE:
-                            if data in que['recvcmd']:
-                                QUEUE.remove(que)
-                                if debug:
-                                    log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
                         if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
                             curTnum = device_list['Thermo']['curTemp']
                             setTnum = device_list['Thermo']['setTemp']
