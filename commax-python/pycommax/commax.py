@@ -104,6 +104,8 @@ def do_work(config, device_list):
     find_signal = config['save_unregistered_signal']
     debug = config['DEBUG']
     check_signal = config['check_all_received_signal']
+    data_size = 32
+    socket_size = int(data_size / 2)
 
     STATE_TOPIC = 'homenet/{}/{}/state'
 
@@ -194,6 +196,7 @@ def do_work(config, device_list):
 
     HOMESTATE = {}
     QUEUE = []
+    COLLECTDATA = {'cond': find_signal, 'data': [], 'EVtime': time.time(), 'LastRecv': time.time_ns()}
 
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
@@ -344,111 +347,120 @@ def do_work(config, device_list):
                     log('[DEBUG] {} is already set: {}'.format(key, val))
         return
 
-    async def recv_from_socket():
-        data_size = 32
-        socket_size = int(data_size / 2)
+    async def recv_from_socket(READER):
+        try:
+            req = await READER.read(socket_size)
+            if HOMESTATE.get('EV1power') == 'ON':
+                if COLLECTDATA['EVtime'] < time.time():
+                    await update_state('EV', 0, 'OFF')
 
-        COLLECTDATA = []
-        fsignal = find_signal
-        EVontime = time.time()
+            data = req.hex().upper()
+            if data:
+                if check_signal:
+                    log('[SIGNAL] receved: {}'.format(data))
+                data_prefix = data[:2]
+                if data_prefix in prefix_list:
+                    device_name = prefix_list[data_prefix]
+                    if len(data) == 32:
+                        data = data[16:]
+                        for que in QUEUE:
+                            if data in que['recvcmd']:
+                                QUEUE.remove(que)
+                                if debug:
+                                    log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
+                        if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
+                            curTnum = device_list['Thermo']['curTemp']
+                            setTnum = device_list['Thermo']['setTemp']
+                            curT = data[curTnum - 1:curTnum + 1]
+                            setT = data[setTnum - 1:setTnum + 1]
+                            onoffNUM = device_list['Thermo']['stateONOFFNUM']
+                            staNUM = device_list['Thermo']['stateNUM']
+                            index = int(data[staNUM - 1]) - 1
+                            onoff = 'ON' if int(data[onoffNUM - 1]) > 0 else 'OFF'
+
+                            await update_state(device_name, index, onoff)
+                            await update_temperature(index, curT, setT)
+                        elif device_name == 'Fan':
+                            if data in DEVICE_LISTS['Fan'][1]['stateON']:
+                                await update_state('Fan', 0, 'ON')
+                                speed = DEVICE_LISTS['Fan'][1]['stateON'].index(data)
+                                await update_fan('Fan', 0, speed)
+                        else:
+                            num = DEVICE_LISTS[device_name]['Num']
+                            state = [DEVICE_LISTS[device_name][k+1]['stateOFF'] for k in range(num)] + [DEVICE_LISTS[device_name][k+1]['stateON'] for k in range(num)]
+                            if data in state:
+                                index = state.index(data)
+                                onoff, index = ['OFF', index] if index < num else ['ON', index - num]
+                                await update_state(device_name, index, onoff)
+                    else:
+                        if device_name == 'EV':
+                            await update_state('EV', 0, 'ON')
+                            COLLECTDATA['EVtime'] = time.time() + 3
+                else:
+                    if COLLECTDATA['cond']:
+                        if len(COLLECTDATA['data']) < 20:
+                            if data not in COLLECTDATA['data']:
+                                log('[FOUND] signal: {}'.format(data))
+                                COLLECTDATA['data'].append(data)
+                                COLLECTDATA['data'] = list(set(COLLECTDATA['data']))
+                        else:
+                            COLLECTDATA['cond'] = False
+                            with open(share_dir + '/collected_signal.txt', 'w', encoding='utf-8') as make_file:
+                                json.dump(COLLECTDATA['data'], make_file, indent="\t")
+                                log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
+                            COLLECTDATA['data'] = None
+        except Exception as err:
+            log('[ERROR] recv_from_socket: {}'.format(err))
+            return True
+        return
+
+    async def send_to_socket(WRITER):
+        try:
+            if QUEUE:
+                send_data = QUEUE.pop(0)
+                if debug:
+                    log('[DEBUG] socket:: Send a signal: {}'.format(send_data))
+                WRITER.write(bytes.fromhex(send_data['sendcmd']))
+                await WRITER.drain()
+                await asyncio.sleep(0.4)
+                if send_data['count'] < 3:
+                    send_data['count'] = send_data['count'] + 1
+                    QUEUE.append(send_data)
+                else:
+                    if debug:
+                        log('[ERROR] socket:: Send over 3 times. Send Failure. Delete a queue: {}'.format(send_data))
+        except Exception as err:
+            log('[ERROR] send_to_socket(): {}'.format(err))
+            return True
+        await asyncio.sleep(0.1)
+        return
+
+    async def socket_process():
         if 'EV' in DEVICE_LISTS:
             await update_state('EV', 0, 'OFF')
+
         while True:
             reader, writer = await asyncio.open_connection(config['socket_IP'], config['socket_port'])
-            for _ in range(100):
+            for _ in range(10):
                 try:
-                    req = await reader.read(socket_size)
-                    if HOMESTATE.get('EV1power') == 'ON':
-                        if EVontime < time.time():
-                            await update_state('EV', 0, 'OFF')
-
-                    data = req.hex().upper()
-                    if data:
-                        if check_signal:
-                            log('[SIGNAL] receved: {}'.format(data))
-                        data_prefix = data[:2]
-                        if data_prefix in prefix_list:
-                            device_name = prefix_list[data_prefix]
-                            if len(data) == 32:
-                                data = data[16:]
-                                for que in QUEUE:
-                                    if data in que['recvcmd']:
-                                        QUEUE.remove(que)
-                                        if debug:
-                                            log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
-                                if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
-                                    curTnum = device_list['Thermo']['curTemp']
-                                    setTnum = device_list['Thermo']['setTemp']
-                                    curT = data[curTnum - 1:curTnum + 1]
-                                    setT = data[setTnum - 1:setTnum + 1]
-                                    onoffNUM = device_list['Thermo']['stateONOFFNUM']
-                                    staNUM = device_list['Thermo']['stateNUM']
-                                    index = int(data[staNUM - 1]) - 1
-                                    onoff = 'ON' if int(data[onoffNUM - 1]) > 0 else 'OFF'
-
-                                    await update_state(device_name, index, onoff)
-                                    await update_temperature(index, curT, setT)
-                                elif device_name == 'Fan':
-                                    if data in DEVICE_LISTS['Fan'][1]['stateON']:
-                                        await update_state('Fan', 0, 'ON')
-                                        speed = DEVICE_LISTS['Fan'][1]['stateON'].index(data)
-                                        await update_fan('Fan', 0, speed)
-                                else:
-                                    num = DEVICE_LISTS[device_name]['Num']
-                                    state = [DEVICE_LISTS[device_name][k+1]['stateOFF'] for k in range(num)] + [DEVICE_LISTS[device_name][k+1]['stateON'] for k in range(num)]
-                                    if data in state:
-                                        index = state.index(data)
-                                        onoff, index = ['OFF', index] if index < num else ['ON', index - num]
-                                        await update_state(device_name, index, onoff)
-                            else:
-                                if device_name == 'EV':
-                                    await update_state('EV', 0, 'ON')
-                                    EVontime = time.time() + 3
-                        else:
-                            if fsignal:
-                                if len(COLLECTDATA) < 20:
-                                    if data not in COLLECTDATA:
-                                        log('[FOUND] signal: {}'.format(data))
-                                        COLLECTDATA.append(data)
-                                        COLLECTDATA = list(set(COLLECTDATA))
-                                else:
-                                    fsignal = False
-                                    with open(share_dir + '/collected_signal.txt', 'w', encoding='utf-8') as make_file:
-                                        json.dump(COLLECTDATA, make_file, indent="\t")
-                                        log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
-                                    COLLECTDATA = None
-                except Exception as err:
-                    log('[ERROR] recv_from_socket: {}'.format(err))
-                    break
-            writer.close()
-            await writer.wait_closed()
-
-    async def send_to_socket():
-        while True:
-            reader, writer = await asyncio.open_connection(config['socket_IP'], config['socket_port'])
-            for _ in range(100):
-                try:
-                    if QUEUE:
-                        send_data = QUEUE.pop(0)
-                        if debug:
-                            log('[DEBUG] socket:: Send a signal: {}'.format(send_data))
-                        writer.write(bytes.fromhex(send_data['sendcmd']))
-                        await writer.drain()
-                        await asyncio.sleep(0.5)
-                        if send_data['count'] < 5:
-                            send_data['count'] = send_data['count'] + 1
-                            QUEUE.append(send_data)
-                        else:
-                            if debug:
-                                log('[ERROR] socket:: Send over 5 times. Send Failure. Delete a queue: {}'.format(send_data))
+                    err_recv = await recv_from_socket(reader)
+                    err_send = await send_to_socket(writer)
+                    if err_recv or err_send:
+                        writer.close()
+                        await writer.wait_closed()
+                        break
                 except Exception as err:
                     log('[ERROR] send_to_socket(): {}'.format(err))
+                    writer.close()
+                    await writer.wait_closed()
+                    log('Try to reconnect..')
                     break
             writer.close()
             await writer.wait_closed()
 
     loop = asyncio.get_event_loop()
-    cors = asyncio.wait([send_to_socket(), recv_from_socket()])
+    # cors = asyncio.wait([send_to_socket(), recv_from_socket()])
+    cors = asyncio.wait([socket_process()])
     loop.run_until_complete(cors)
     loop.close()
 
