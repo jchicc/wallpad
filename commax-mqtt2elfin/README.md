@@ -26,8 +26,6 @@ Python으로 제작한 elfin 기기와 mqtt 통신을 통한 코맥스 월패드
 "mqtt_log": true,
 "elfin_log": false,
 "save_unregistered_signal": false,
-"ew11_IP": "192.168.x.x",
-"ew11_port": 8899,
 "mqtt_server": "192.168.x.x",
 "mqtt_id": "id",
 "mqtt_password": "pwd"
@@ -41,11 +39,6 @@ MQTT 전송 신호를 출력합니다.
 ew11을 통해 보내거나 받은 신호를 출력합니다.
 #### save_unregistered_signal : true / false
 등록되지 않은 신호 20개를 출력하고, /share/collected_signal.txt 에 저장합니다.
-
-#### ew11_IP : 문자
-ew11 의 IP 주소를 적습니다. ex) 192.168.0.2
-#### ew11_port : 숫자
-ew11 의 포트 번호를 적습니다. ex) 8899
 
 #### mqtt_server : 문자
 mqtt 서버의 IP 주소를 적습니다. ex) 192.168.0.2
@@ -151,11 +144,11 @@ mqtt 서버 사용자의 암호를 적습니다. 숫자암호인 경우 꼭 따�
 
 ### commandNUM, stateNUM 은 무엇인가?
 예를 들어 전등은
-3101000000000032 명령을 주면 B1000100000000B2 의 응답신호를 보냅니다. (1번 전등 OFF)
-3102000000000033 명령을 주면 B1000200000000B3 의 응답신호를 보냅니다. (2번 전등 OFF)
+3101000000000032 명령은 1번 전등 OFF, 3102000000000033 명령은 2번 전등 OFF 입니다.
+OFF 명령은 4번째 자리가 기기에 따라 바뀌므로 "commandNUM": "4"입니다.
 
-OFF 명령은 4번째 자리가 기기에 따라 바뀌고, OFF 응답은 6번째 자리가 기기에 따라 바뀝니다.
-"commandNUM": "4"입니다.
+B1000100000000B2 응답은 1번 전등 OFF 상태, B1000200000000B3 응답은 2번 전등 OFF 상태를 나타냅니다. OFF 상태는 6번째 자리가 기기에 따라 바뀌므로 "stateNUM": "6"입니다.
+
 
 
 기기 등록 예
