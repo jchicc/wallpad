@@ -15,8 +15,6 @@
     "mqtt_log": true,
     "elfin_log": false,
     "save_unregistered_signal": false,
-    "socket_IP": "192.168.x.x",
-    "socket_port": 8899,
     "mqtt_server": "192.168.x.x",
     "mqtt_id": "id",
     "mqtt_password": "pwd"
@@ -26,8 +24,6 @@
     "mqtt_log": "bool",
     "elfin_log": "bool",
     "save_unregistered_signal": "bool",
-    "socket_IP": "str",
-    "socket_port": "int",
     "mqtt_server": "str",
     "mqtt_id": "str",
     "mqtt_password": "str"
