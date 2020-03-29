@@ -9,6 +9,10 @@ commax-python
 -------------
 python3를 이용하여 작동합니다.
 
+commax_mqtt2elfin
+-----------------
+socket 통신을 없애고 모두 mqtt를 사용합니다. python3를 이용하여 작동합니다.
+
 
 ### 자세한 설명은 해당 폴더에서 확인하세요.
 
