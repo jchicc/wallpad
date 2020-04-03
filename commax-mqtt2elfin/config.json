@@ -1,7 +1,7 @@
 {
   "name": "MQTT2elfin COMMAX Wallpad Controller with Python",
-  "version": "1.0.0",
-  "slug": "commax-mqtt2elfin-python",
+  "version": "1.0.1",
+  "slug": "commax_mqtt2elfin_python",
   "url": "https://github.com/kimtc99/wallpad",
   "description": "Python으로 제작한 elfin 기기와 mqtt 통신을 통한 코맥스 월패드 컨트롤러",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],

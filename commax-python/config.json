@@ -1,7 +1,7 @@
 {
   "name": "COMMAX Wallpad Controller with Python",
   "version": "1.1.7",
-  "slug": "commax-wallpad-python",
+  "slug": "commax_wallpad_python",
   "url": "https://github.com/kimtc99/wallpad",
   "description": "Python으로 만든 네트워크 통신을 위한 코맥스 월패드",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],

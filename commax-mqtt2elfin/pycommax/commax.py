@@ -39,7 +39,7 @@ def find_device(config):
 
     def on_message(client, userdata, msg):
         data = msg.payload.hex().upper()
-        if len(data) == 32:
+        if len(data) < 33:
             collect_data.append(data)
 
     mqtt_client = mqtt.Client('commax-mqtt2elfin-python')
@@ -63,18 +63,14 @@ def find_device(config):
     for name in dev_info:
         collected_list[name] = sorted(
             list(filter(lambda hex_data: hex_data.startswith(dev_info[name]['statePREFIX']), collect_data)))
-
     for key in collected_list:
-        if key == 'Thermo' or key == 'Light':
-            dev_info[key]['Number'] = len(sorted([hex_data[:16] for hex_data in collected_list[key]]))
-        elif key == 'LightBreaker' or key == 'Gas':
-            if len(collected_list[key]) < 2:
-                dev_info[key]['Number'] = len(collected_list[key])
-            else:
-                dev_info[key]['Number'] = 1
+        lists = list(set([hex_data[:16] for hex_data in collected_list[key] if len(hex_data) == 32]))
+        dev_info[key]['Number'] = len(lists)
+        if key == 'LightBreaker' or key == 'Gas':
+            if len(collected_list[key]) > 1:
                 dev_info[key]['stateOFF'] = collected_list[key][0][16:]
                 dev_info[key]['stateON'] = collected_list[key][1][16:]
-        elif key == 'Fan' or key == 'EV':
+        elif key == 'EV':
             dev_info[key]['Number'] = 0 if len(collected_list[key]) < 1 else 1
 
     with open(share_dir + '/commax_found_device.json', 'w', encoding='utf-8') as make_file:
@@ -84,10 +80,10 @@ def find_device(config):
 
 
 def do_work(config, device_list):
-    mqtt_log = config['mqtt_log']
-    find_signal = config['save_unregistered_signal']
     debug = config['DEBUG']
+    mqtt_log = config['mqtt_log']
     elfin_log = config['elfin_log']
+    find_signal = config['save_unregistered_signal']
 
     def pad(value):
         value = int(value)
@@ -376,6 +372,8 @@ def do_work(config, device_list):
         if rc == 0:
             log("MQTT connection successful!!")
             client.subscribe([(HA_TOPIC + '/#', 0), (ELFIN_TOPIC + '/recv', 0), (ELFIN_TOPIC + '/send', 1)])
+            if 'EV' in DEVICE_LISTS:
+                asyncio.run(update_state('EV', 0, 'OFF'))
         else:
             errcode = {1: 'Connection refused - incorrect protocol version',
                        2: 'Connection refused - invalid client identifier',
