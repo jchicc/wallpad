@@ -11,6 +11,11 @@ https://github.com/HAKorea/addons/wallpad 를 참고 하였습니다.
 5. ew11에서 8byte로 신호를 받아오는 경우 에러가 많아서 hex 길이를 16/32 두가지로 만들어뒀습니다. (16: 8byte, 32: 8byte 2개)
 (시리얼몬으로 확인 시 3101000000000032B1000100000000B2 방식으로 신호가 오면 32로 세팅을 하고, 3101000000000032 // B1000100000000B2 각각 따로 두줄의 형태로 나오면 16으로 세팅하면 됩니다.)
 
+설치전 준비사항
+-----------
+1. elfin ew11 설정화면의 'Serical Settings'을 다음으로 설정합니다.
+![ew11 serial 설정화면](https://github.com/kimtc99/wallpad/blob/master/img/ew11-serial.png)
+
 설치 방법
 -------
 1. Supervisor -> ADD-ON STORE 이동
