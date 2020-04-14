@@ -9,7 +9,7 @@ Python으로 제작한 elfin 기기와 mqtt 통신을 통한 코맥스 월패드
 
 설치전 준비사항
 -----------
-1. elfin ew11 설정화면의 'Serical Settings'을 다음으로 설정합니다.
+1. elfin ew11 설정화면의 'Serial Port Settings'을 다음으로 설정합니다.
 ![ew11 serial 설정화면](https://github.com/kimtc99/wallpad/blob/master/img/ew11-serial.png)
 
 2. elfin ew11 설정화면의 'Communication Settings'에서 다음을 추가합니다.
