@@ -1,4 +1,4 @@
-코맥스 월패드 컨트롤러 - soecket 전용
+코맥스 월패드 컨트롤러 - socket 전용
 ===============================
 
 [commax_mqtt2elfin](https://github.com/kimtc99/wallpad/tree/master/commax-mqtt2elfin) (추천)

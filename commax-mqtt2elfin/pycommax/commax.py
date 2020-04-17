@@ -244,72 +244,76 @@ def do_work(config, device_list):
         except Exception as err:
             log('[ERROR] mqtt_on_message(): {}'.format(err))
 
-    async def recv_from_elfin(data):
+    async def recv_from_elfin(raw_data):
         COLLECTDATA['LastRecv'] = time.time_ns()
-        if data:
+        if raw_data:
             if HOMESTATE.get('EV1power') == 'ON':
                 if COLLECTDATA['EVtime'] < time.time():
                     await update_state('EV', 0, 'OFF')
             OutBreak = False
             for que in QUEUE:
                 for recvcmd in que['recvcmd']:
-                    if recvcmd in data:
+                    if recvcmd in raw_data:
                         QUEUE.remove(que)
                         if debug:
-                            log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(data, que))
+                            log('[DEBUG] Found matched hex: {}. Delete a queue: {}'.format(raw_data, que))
                         OutBreak = True
                         break
                 if OutBreak:
                     break
 
             if elfin_log:
-                log('[SIGNAL] receved: {}'.format(data))
-            data_prefix = data[:2]
-            if data_prefix in prefix_list:
-                device_name = prefix_list[data_prefix]
-                if len(data) == 32:
-                    data = data[16:]
-                    if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
-                        curTnum = device_list['Thermo']['curTemp']
-                        setTnum = device_list['Thermo']['setTemp']
-                        curT = data[curTnum - 1:curTnum + 1]
-                        setT = data[setTnum - 1:setTnum + 1]
-                        onoffNUM = device_list['Thermo']['stateONOFFNUM']
-                        staNUM = device_list['Thermo']['stateNUM']
-                        index = int(data[staNUM - 1]) - 1
-                        onoff = 'ON' if int(data[onoffNUM - 1]) > 0 else 'OFF'
+                log('[SIGNAL] receved: {}'.format(raw_data))
 
-                        await update_state(device_name, index, onoff)
-                        await update_temperature(index, curT, setT)
-                    elif device_name == 'Fan':
-                        if data in DEVICE_LISTS['Fan'][1]['stateON']:
-                            await update_state('Fan', 0, 'ON')
-                            speed = DEVICE_LISTS['Fan'][1]['stateON'].index(data)
-                            await update_fan('Fan', 0, speed)
-                    else:
-                        num = DEVICE_LISTS[device_name]['Num']
-                        state = [DEVICE_LISTS[device_name][k+1]['stateOFF'] for k in range(num)] + [DEVICE_LISTS[device_name][k+1]['stateON'] for k in range(num)]
-                        if data in state:
-                            index = state.index(data)
-                            onoff, index = ['OFF', index] if index < num else ['ON', index - num]
+            for k in range(0, len(raw_data), 32):
+                data = raw_data[k:k + 32]
+
+                data_prefix = data[:2]
+                if data_prefix in prefix_list:
+                    device_name = prefix_list[data_prefix]
+                    if len(data) == 32:
+                        data = data[16:]
+                        if device_name == 'Thermo' and data.startswith(device_list['Thermo']['stateOFF'][:2]):
+                            curTnum = device_list['Thermo']['curTemp']
+                            setTnum = device_list['Thermo']['setTemp']
+                            curT = data[curTnum - 1:curTnum + 1]
+                            setT = data[setTnum - 1:setTnum + 1]
+                            onoffNUM = device_list['Thermo']['stateONOFFNUM']
+                            staNUM = device_list['Thermo']['stateNUM']
+                            index = int(data[staNUM - 1]) - 1
+                            onoff = 'ON' if int(data[onoffNUM - 1]) > 0 else 'OFF'
+
                             await update_state(device_name, index, onoff)
-                else:
-                    if device_name == 'EV':
-                        await update_state('EV', 0, 'ON')
-                        COLLECTDATA['EVtime'] = time.time() + 3
-            else:
-                if COLLECTDATA['cond']:
-                    if len(COLLECTDATA['data']) < 20:
-                        if data not in COLLECTDATA['data']:
-                            log('[FOUND] signal: {}'.format(data))
-                            COLLECTDATA['data'].append(data)
-                            COLLECTDATA['data'] = list(set(COLLECTDATA['data']))
+                            await update_temperature(index, curT, setT)
+                        elif device_name == 'Fan':
+                            if data in DEVICE_LISTS['Fan'][1]['stateON']:
+                                await update_state('Fan', 0, 'ON')
+                                speed = DEVICE_LISTS['Fan'][1]['stateON'].index(data)
+                                await update_fan('Fan', 0, speed)
+                        else:
+                            num = DEVICE_LISTS[device_name]['Num']
+                            state = [DEVICE_LISTS[device_name][k+1]['stateOFF'] for k in range(num)] + [DEVICE_LISTS[device_name][k+1]['stateON'] for k in range(num)]
+                            if data in state:
+                                index = state.index(data)
+                                onoff, index = ['OFF', index] if index < num else ['ON', index - num]
+                                await update_state(device_name, index, onoff)
                     else:
-                        COLLECTDATA['cond'] = False
-                        with open(share_dir + '/collected_signal.txt', 'w', encoding='utf-8') as make_file:
-                            json.dump(COLLECTDATA['data'], make_file, indent="\t")
-                            log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
-                        COLLECTDATA['data'] = None
+                        if device_name == 'EV':
+                            await update_state('EV', 0, 'ON')
+                            COLLECTDATA['EVtime'] = time.time() + 3
+                else:
+                    if COLLECTDATA['cond']:
+                        if len(COLLECTDATA['data']) < 20:
+                            if data not in COLLECTDATA['data']:
+                                log('[FOUND] signal: {}'.format(data))
+                                COLLECTDATA['data'].append(data)
+                                COLLECTDATA['data'] = list(set(COLLECTDATA['data']))
+                        else:
+                            COLLECTDATA['cond'] = False
+                            with open(share_dir + '/collected_signal.txt', 'w', encoding='utf-8') as make_file:
+                                json.dump(COLLECTDATA['data'], make_file, indent="\t")
+                                log('[Complete] Collect 20 signals. See : /share/collected_signal.txt')
+                            COLLECTDATA['data'] = None
 
     async def update_state(device, idx, onoff):
         state = 'power'
@@ -424,6 +428,7 @@ def do_work(config, device_list):
     loop.run_until_complete(send_to_elfin())
     loop.close()
     mqtt_client.loop_stop()
+
 
 if __name__ == '__main__':
     with open(config_dir + '/options.json') as file:
