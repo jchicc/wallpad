@@ -39,8 +39,8 @@ def find_device(config):
 
     def on_message(client, userdata, msg):
         data = msg.payload.hex().upper()
-        if len(data) < 33:
-            collect_data.append(data)
+        for k in range(0, len(data), 32):
+            collect_data.append(data[k:k + 32])
 
     mqtt_client = mqtt.Client('commax-mqtt2elfin-python')
     mqtt_client.username_pw_set(config['mqtt_id'], config['mqtt_password'])
